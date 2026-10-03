@@ -59,25 +59,12 @@ jobs:
       # -------------------------
       - name: Upload deployment artifacts to S3
         run: |
-          aws s3 cp common-layer.zip \
-            s3://${{ vars.DEPLOYMENT_BUCKET }}/layers/common-layer.zip
-
-          aws s3 cp lambda-a.zip \
-            s3://${{ vars.DEPLOYMENT_BUCKET }}/lambdas/lambda-a.zip
-
-          aws s3 cp lambda-b.zip \
-            s3://${{ vars.DEPLOYMENT_BUCKET }}/lambdas/lambda-b.zip
+          aws s3 cp common-layer.zip s3://${{ vars.DEPLOYMENT_BUCKET }}/layers/common-layer.zip
+          aws s3 cp lambda-a.zip s3://${{ vars.DEPLOYMENT_BUCKET }}/lambdas/lambda-a.zip
+          aws s3 cp lambda-b.zip s3://${{ vars.DEPLOYMENT_BUCKET }}/lambdas/lambda-b.zip
 
       # -------------------------
       # Deploy CloudFormation
       # -------------------------
       - name: Deploy CloudFormation stack
-        run: |
-          aws cloudformation deploy \
-            --template-file template.yaml \
-            --stack-name lambda-layer-stack \
-            --parameter-overrides \
-              DeploymentBucket=${{ vars.DEPLOYMENT_BUCKET }} \
-            --capabilities CAPABILITY_NAMED_IAM \
-            --no-fail-on-empty-changeset \
-            --region ${{ vars.AWS_REGION }}
+        run: aws cloudformation deploy --template-file template.yaml --stack-name lambda-layer-stack --parameter-overrides DeploymentBucket=${{ vars.DEPLOYMENT_BUCKET }} --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset --region ${{ vars.AWS_REGION }}
