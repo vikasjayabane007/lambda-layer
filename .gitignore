@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Deployment packages
+*.zip
+
+# IDE
+.vscode/
+.idea/
+
+# Terraform if you add it later
+.terraform/
+*.tfstate
+*.tfstate.*
