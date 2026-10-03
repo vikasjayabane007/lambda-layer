@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda functions using a shared Lambda Layer
+
+Parameters:
+  DeploymentBucket:
+    Type: String
+    Description: S3 bucket containing Lambda deployment artifacts
+
+Resources:
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: lambda-layer-execution-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  CommonLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: common-python-layer
+      Description: Shared Python code for Lambda functions
+      Content:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: layers/common-layer.zip
+      CompatibleRuntimes:
+        - python3.12
+
+  LambdaA:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: lambda-a
+      Runtime: python3.12
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: lambdas/lambda-a.zip
+      Layers:
+        - !Ref CommonLayer
+      Timeout: 30
+      MemorySize: 128
+
+  LambdaB:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: lambda-b
+      Runtime: python3.12
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: lambdas/lambda-b.zip
+      Layers:
+        - !Ref CommonLayer
+      Timeout: 30
+      MemorySize: 128
+
+Outputs:
+  LambdaAName:
+    Value: !Ref LambdaA
+
+  LambdaBName:
+    Value: !Ref LambdaB
+
+  LayerArn:
+    Value: !Ref CommonLayer
