@@ -1,0 +1,83 @@
+name: Deploy Lambda Application
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # GitHub -> AWS using OIDC
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Verify AWS connection
+        run: aws sts get-caller-identity
+
+      # -------------------------
+      # Package Lambda Layer
+      # -------------------------
+      - name: Package Lambda Layer
+        run: |
+          cd layer
+          zip -r ../common-layer.zip python
+          cd ..
+
+      # -------------------------
+      # Package Lambda A
+      # -------------------------
+      - name: Package Lambda A
+        run: |
+          cd lambda-a
+          zip -r ../lambda-a.zip .
+          cd ..
+
+      # -------------------------
+      # Package Lambda B
+      # -------------------------
+      - name: Package Lambda B
+        run: |
+          cd lambda-b
+          zip -r ../lambda-b.zip .
+          cd ..
+
+      # -------------------------
+      # Upload artifacts to S3
+      # -------------------------
+      - name: Upload deployment artifacts to S3
+        run: |
+          aws s3 cp common-layer.zip \
+            s3://${{ vars.DEPLOYMENT_BUCKET }}/layers/common-layer.zip
+
+          aws s3 cp lambda-a.zip \
+            s3://${{ vars.DEPLOYMENT_BUCKET }}/lambdas/lambda-a.zip
+
+          aws s3 cp lambda-b.zip \
+            s3://${{ vars.DEPLOYMENT_BUCKET }}/lambdas/lambda-b.zip
+
+      # -------------------------
+      # Deploy CloudFormation
+      # -------------------------
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --template-file template.yaml \
+            --stack-name lambda-layer-stack \
+            --parameter-overrides \
+              DeploymentBucket=${{ vars.DEPLOYMENT_BUCKET }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --region ${{ vars.AWS_REGION }}
