@@ -62,7 +62,13 @@ jobs:
           aws s3 cp common-layer.zip "s3://${{ vars.DEPLOYMENT_BUCKET }}/layers/common-layer.zip"
           aws s3 cp lambda-a.zip "s3://${{ vars.DEPLOYMENT_BUCKET }}/lambdas/lambda-a.zip"
           aws s3 cp lambda-b.zip "s3://${{ vars.DEPLOYMENT_BUCKET }}/lambdas/lambda-b.zip"
+      
 
+      - name: Validate CloudFormation template
+        run: |
+          aws cloudformation validate-template --template-body file://template.yaml
+
+          
       # -------------------------
       # Deploy CloudFormation
       # -------------------------
